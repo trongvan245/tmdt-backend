@@ -1,0 +1,93 @@
+// schema.prisma
+
+datasource db {
+  provider = "postgresql" // hoặc mysql
+  url      = env("DATABASE_URL") // Cách này sẽ hoạt động OK ở Prisma 5
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  CUSTOMER
+  ARTISAN // Nghệ nhân/Người bán
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPING
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  fullName  String?
+  role      Role     @default(CUSTOMER)
+  
+  // Quan hệ
+  artisanProfile ArtisanProfile? // Nếu user là ARTISAN
+  orders         Order[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ArtisanProfile {
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique
+  user        User    @relation(fields: [userId], references: [id])
+  brandName   String  // Tên xưởng/thương hiệu
+  story       String? // Câu chuyện về nghệ nhân (Storytelling)
+  isVerified  Boolean @default(false) // Trust-by-design: Huy hiệu xác thực
+  
+  products    Product[]
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String
+  story       String?  // Cốt lõi: Câu chuyện của sản phẩm (quy trình, ý nghĩa văn hóa)
+  material    String?  // Chất liệu (Đất sét trắng, men rạn...)
+  technique   String?  // Kỹ thuật (Vuốt tay, đắp nổi...)
+  price       Decimal
+  stock       Int      @default(0)
+  images      String[] // Mảng URL ảnh
+  
+  artisanId   Int
+  artisan     ArtisanProfile @relation(fields: [artisanId], references: [id])
+  
+  orderItems  OrderItem[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  userId      Int
+  user        User        @relation(fields: [userId], references: [id])
+  totalAmount Decimal
+  status      OrderStatus @default(PENDING)
+  
+  items       OrderItem[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Decimal // Lưu giá tại thời điểm mua
+}
