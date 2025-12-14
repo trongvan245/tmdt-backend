@@ -6,7 +6,7 @@ services:
     container_name: bat_trang_postgres
     restart: always
     ports:
-      - '5432:5432' # Map port 5432 của container ra máy thật
+      - '5433:5432' # Map port 5432 của container ra máy thật
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password123
