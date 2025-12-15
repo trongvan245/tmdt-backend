@@ -24,6 +24,6 @@ async function bootstrap() {
   // 3. Cho phép Frontend (sau này) gọi API
   app.enableCors(); 
 
-  await app.listen(6000);
+  await app.listen(7000);
 }
 bootstrap();
