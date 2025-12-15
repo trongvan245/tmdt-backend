@@ -1,4 +1,4 @@
-name: Deploy to Server
+name: Deploy PM2
 
 on:
   push:
@@ -16,18 +16,24 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
+            # 1. Vào thư mục
             cd ~/repo/tmdt-backend
-            
-            # 1. Lấy code mới
+
+            # 2. Lấy code mới
             git pull origin main
-            
-            # 2. Xóa container App cũ đi để tránh lỗi 'KeyError: ContainerConfig'
-            # (Lệnh này an toàn, không mất dữ liệu DB)
-            docker rm -f bat_trang_backend || true
-            
-            # 3. Dùng lệnh "docker compose" (không có gạch ngang)
-            # Chỉ build lại service app, db giữ nguyên
-            docker compose up -d --build app
-            
-            # 4. Dọn rác
-            docker image prune -f
+
+            # 3. Cài package mới (nếu có)
+            npm install
+
+            # 4. Generate Prisma Client (Bắt buộc để code hiểu DB)
+            npx prisma generate
+
+            # 5. Build code NestJS ra thư mục /dist
+            npm run build
+
+            # 6. Khởi động lại PM2
+            # Nếu chưa chạy lần nào thì start, chạy rồi thì reload (không downtime)
+            pm2 reload ecosystem.config.js || pm2 start ecosystem.config.js
+
+            # 7. Lưu lại danh sách process (để server khởi động lại tự chạy)
+            pm2 save
