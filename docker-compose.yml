@@ -1,18 +1,34 @@
 version: '3.8'
 
 services:
+  # Service Database (Cũ)
   db:
     image: postgres:15-alpine
     container_name: bat_trang_postgres
     restart: always
     ports:
-      - '5433:5432' # Map port 5432 của container ra máy thật
+      - '5433:5432' # Port ngoài 5433, trong 5432
     environment:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: password123
       POSTGRES_DB: battrang_db
     volumes:
-      - postgres_data:/var/lib/postgresql/data # Giữ lại dữ liệu khi tắt Docker
+      - postgres_data:/var/lib/postgresql/data
+
+  # Service Backend (Mới thêm)
+  app:
+    build: . # Build từ Dockerfile ở thư mục hiện tại
+    container_name: bat_trang_backend
+    restart: always
+    ports:
+      - '3000:3000' # Map port 3000 ra ngoài
+    depends_on:
+      - db # Chờ DB chạy trước
+    environment:
+      # QUAN TRỌNG: Trong mạng Docker, host là tên service ("db"), port là 5432
+      DATABASE_URL: "postgresql://admin:password123@db:5432/battrang_db?schema=public"
+      JWT_SECRET: "DayLaKhoaBiMatCuaDuAnBatTrangCeramics2024" # Hoặc dùng biến môi trường
+      PORT: 3000
 
 volumes:
   postgres_data:

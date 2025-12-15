@@ -1,16 +1,25 @@
+// src/app.module.ts
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { APP_GUARD } from '@nestjs/core'; // <--- Import cái này
+import { JwtAuthGuard } from './auth/jwt-auth.guard'; // <--- Guard vừa tạo
+import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
-import { ProductsModule } from './products/products.module';
-import { OrdersModule } from './orders/orders.module';
-import { ArtisansModule } from './artisans/artisans.module';
-import { PrismaModule } from './prisma/prisma.module';
+// ... các import khác
 
 @Module({
-  imports: [AuthModule, UsersModule, ProductsModule, OrdersModule, ArtisansModule, PrismaModule],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    PrismaModule, 
+    AuthModule, 
+    UsersModule, 
+    // ...
+  ],
+  controllers: [],
+  providers: [
+    {
+      provide: APP_GUARD, // Đăng ký Guard toàn cục ở đây
+      useClass: JwtAuthGuard,
+    },
+  ],
 })
 export class AppModule {}

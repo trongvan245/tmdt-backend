@@ -1,34 +1,38 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+// src/users/users.controller.ts
+import { Controller, Get, Body, Patch } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
+// Import cái mới vừa tạo
+import { CurrentUser } from '../common/decorator/user.decorator';
+import { UserPayload } from '../common/model/user.model';
+
+@ApiTags('Users')
+@ApiBearerAuth()
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Post()
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  // CÁCH MỚI: Dùng @CurrentUser
+  @Get('me')
+  getProfile(@CurrentUser() user: UserPayload) {
+    // Bây giờ bạn gõ "user." nó sẽ gợi ý id, email, fullName... cực sướng
+    console.log('ID user là:', user.id); 
+    return user;
   }
 
-  @Get()
-  findAll() {
-    return this.usersService.findAll();
+  @Patch('me')
+  updateProfile(
+    @CurrentUser() user: UserPayload, // Lấy cả object user
+    @Body() updateUserDto: UpdateUserDto
+  ) {
+    return this.usersService.update(user.id, updateUserDto);
   }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
-  }
+  
+  // Ví dụ: Nếu chỉ muốn lấy ID cho nhanh
+  // @Get('test-id')
+  // testId(@CurrentUser('id') userId: number) {
+  //   return `ID của tôi là ${userId}`;
+  // }
 }
