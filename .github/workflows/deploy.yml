@@ -2,7 +2,7 @@ name: Deploy to Server
 
 on:
   push:
-    branches: [ "main" ] # Chạy khi push vào nhánh main
+    branches: [ "main" ]
 
 jobs:
   deploy:
@@ -16,14 +16,18 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 22
           script: |
-            # 1. Đi đến thư mục dự án (Sửa lại đường dẫn cho đúng với server của bạn)
             cd ~/repo/tmdt-backend
-
-            # 2. Lấy code mới nhất
+            
+            # 1. Lấy code mới
             git pull origin main
-
-            # 3. Build và khởi động lại container (chỉ app thay đổi thì nó chỉ restart app)
-            docker-compose up -d --build app
-
-            # 4. (Tùy chọn) Dọn dẹp image rác cho đỡ đầy ổ cứng
+            
+            # 2. Xóa container App cũ đi để tránh lỗi 'KeyError: ContainerConfig'
+            # (Lệnh này an toàn, không mất dữ liệu DB)
+            docker rm -f bat_trang_backend || true
+            
+            # 3. Dùng lệnh "docker compose" (không có gạch ngang)
+            # Chỉ build lại service app, db giữ nguyên
+            docker compose up -d --build app
+            
+            # 4. Dọn rác
             docker image prune -f
