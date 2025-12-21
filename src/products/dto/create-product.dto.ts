@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsNotEmpty, Min } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsNotEmpty, Min, IsArray } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'; // Import này
 
@@ -46,4 +46,14 @@ export class CreateProductDto {
   @IsOptional()
   @IsString()
   origin?: string;
+
+  @ApiPropertyOptional({ 
+    example: ['https://anh1.com/a.jpg', 'https://anh2.com/b.jpg'], 
+    description: 'Danh sách URL ảnh sản phẩm',
+    type: [String] // Quan trọng để Swagger hiện ô nhập mảng
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true }) // Validate từng phần tử trong mảng phải là string
+  images?: string[];
 }

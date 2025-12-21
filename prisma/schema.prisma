@@ -51,6 +51,8 @@ model Product {
   category      String   // VD: "Gốm sứ"
   material      String?  // VD: "Đất nung"
   origin        String?  // VD: "Bát Tràng"
+
+  images        String[]
   
   // POSTGRESQL: Dùng Decimal để tính tiền chính xác
   price         Decimal  @db.Decimal(15, 2) 

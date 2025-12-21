@@ -13,8 +13,17 @@ export class ProductsService {
   async create(createProductDto: CreateProductDto) {
     return this.prisma.product.create({
       data: {
-        ...createProductDto,
-        // Lưu ý: price trong schema là Decimal hoặc Float, Prisma xử lý number JS khá ổn
+        shopId: createProductDto.shopId, // (Hoặc lấy từ user token)
+        name: createProductDto.name,
+        description: createProductDto.description,
+        price: createProductDto.price,
+        stockQuantity: createProductDto.stockQuantity,
+        category: createProductDto.category,
+        material: createProductDto.material,
+        origin: createProductDto.origin,
+        
+        // GÁN TRỰC TIẾP:
+        images: createProductDto.images || [], 
       },
     });
   }

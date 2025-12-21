@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { ProductsModule } from './products/products.module';
 import { ShopsModule } from './shops/shops.module';
+import { OrdersModule } from './orders/orders.module';
 // ... các import khác
 
 @Module({
@@ -14,7 +15,9 @@ import { ShopsModule } from './shops/shops.module';
     PrismaModule, 
     AuthModule, 
     UsersModule, 
-    ProductsModule, ShopsModule,
+    ProductsModule, 
+    ShopsModule,
+    OrdersModule,
     // ...
   ],
   controllers: [],
