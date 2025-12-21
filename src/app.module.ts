@@ -5,6 +5,8 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard'; // <--- Guard vừa tạo
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { ProductsModule } from './products/products.module';
+import { ShopsModule } from './shops/shops.module';
 // ... các import khác
 
 @Module({
@@ -12,6 +14,7 @@ import { UsersModule } from './users/users.module';
     PrismaModule, 
     AuthModule, 
     UsersModule, 
+    ProductsModule, ShopsModule,
     // ...
   ],
   controllers: [],

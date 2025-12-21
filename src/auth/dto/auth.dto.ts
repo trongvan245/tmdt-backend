@@ -3,9 +3,9 @@ import { ApiProperty } from '@nestjs/swagger'; // Import từ đây
 import { IsEmail, IsNotEmpty, IsString, MinLength, IsOptional, IsEnum } from 'class-validator';
 
 export enum Role {
-  CUSTOMER = 'CUSTOMER',
-  ARTISAN = 'ARTISAN',
+  SELLER = 'SELLER',
   ADMIN = 'ADMIN',
+  BUYER = 'BUYER', // Added BUYER role
 }
 
 export class RegisterDto {

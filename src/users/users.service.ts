@@ -23,7 +23,7 @@ export class UsersService {
   async findOne(id: number) {
     return this.prisma.user.findUnique({
       where: { id },
-      include: { artisanProfile: true } // Nếu là nghệ nhân thì lấy luôn profile
+      include: { } // Nếu là nghệ nhân thì lấy luôn profile
     });
   }
 

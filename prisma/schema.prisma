@@ -1,93 +1,104 @@
-// schema.prisma
-
-datasource db {
-  provider = "postgresql" // hoặc mysql
-  url      = env("DATABASE_URL") // Cách này sẽ hoạt động OK ở Prisma 5
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
+datasource db {
+  provider = "postgresql" // Đã xác nhận lại là PostgreSQL
+  url      = env("DATABASE_URL")
+}
+
+// --- ENUMS ---
 enum Role {
-  CUSTOMER
-  ARTISAN // Nghệ nhân/Người bán
+  BUYER
+  SELLER
   ADMIN
 }
 
-enum OrderStatus {
-  PENDING
-  CONFIRMED
-  SHIPPING
-  COMPLETED
-  CANCELLED
-}
+// --- MODELS ---
 
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
   password  String
-  fullName  String?
-  role      Role     @default(CUSTOMER)
-  
-  // Quan hệ
-  artisanProfile ArtisanProfile? // Nếu user là ARTISAN
-  orders         Order[]
-  
+  fullName  String
+  role      Role     @default(BUYER)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+
+  // Relations
+  shop    Shop?
+  orders  Order[]
+  reviews Review[]
 }
 
-model ArtisanProfile {
+model Shop {
   id          Int     @id @default(autoincrement())
-  userId      Int     @unique
-  user        User    @relation(fields: [userId], references: [id])
-  brandName   String  // Tên xưởng/thương hiệu
-  story       String? // Câu chuyện về nghệ nhân (Storytelling)
-  isVerified  Boolean @default(false) // Trust-by-design: Huy hiệu xác thực
+  ownerId     Int     @unique
+  name        String
+  description String? // Câu chuyện nghệ nhân
+  isVerified  Boolean @default(false)
   
-  products    Product[]
+  owner    User      @relation(fields: [ownerId], references: [id])
+  products Product[]
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
-  name        String
-  description String
-  story       String?  // Cốt lõi: Câu chuyện của sản phẩm (quy trình, ý nghĩa văn hóa)
-  material    String?  // Chất liệu (Đất sét trắng, men rạn...)
-  technique   String?  // Kỹ thuật (Vuốt tay, đắp nổi...)
-  price       Decimal
-  stock       Int      @default(0)
-  images      String[] // Mảng URL ảnh
+  id            Int      @id @default(autoincrement())
+  shopId        Int
+  name          String
+  description   String   @db.Text
   
-  artisanId   Int
-  artisan     ArtisanProfile @relation(fields: [artisanId], references: [id])
+  // RÚT GỌN: Lưu dạng String để đơn giản hóa
+  category      String   // VD: "Gốm sứ"
+  material      String?  // VD: "Đất nung"
+  origin        String?  // VD: "Bát Tràng"
   
-  orderItems  OrderItem[]
+  // POSTGRESQL: Dùng Decimal để tính tiền chính xác
+  price         Decimal  @db.Decimal(15, 2) 
+  stockQuantity Int      @default(0)
+  soldCount     Int      @default(0)
+  createdAt     DateTime @default(now())
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  shop       Shop        @relation(fields: [shopId], references: [id])
+  reviews    Review[]    
+  orderItems OrderItem[]
 }
 
 model Order {
-  id          Int         @id @default(autoincrement())
-  userId      Int
-  user        User        @relation(fields: [userId], references: [id])
-  totalAmount Decimal
-  status      OrderStatus @default(PENDING)
+  id            Int      @id @default(autoincrement())
+  userId        Int
   
-  items       OrderItem[]
+  // POSTGRESQL: Dùng Decimal
+  totalAmount   Decimal  @db.Decimal(15, 2)
+  status        String   @default("PENDING") 
   
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  // RÚT GỌN: Địa chỉ lưu string
+  address       String   
+  phone         String
+  createdAt     DateTime @default(now())
+
+  user       User        @relation(fields: [userId], references: [id])
+  orderItems OrderItem[]
 }
 
 model OrderItem {
   id        Int     @id @default(autoincrement())
   orderId   Int
-  order     Order   @relation(fields: [orderId], references: [id])
   productId Int
-  product   Product @relation(fields: [productId], references: [id])
   quantity  Int
-  price     Decimal // Lưu giá tại thời điểm mua
+  price     Decimal @db.Decimal(15, 2) // Giá lúc mua
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  productId Int
+  rating    Int      @default(5)
+  comment   String?
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 }

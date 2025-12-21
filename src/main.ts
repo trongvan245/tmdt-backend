@@ -19,11 +19,16 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  SwaggerModule.setup('api', app, document, {
+      swaggerOptions: {
+        persistAuthorization: true, // <--- Giữ token khi reload trang
+      },
+    });
 
   // 3. Cho phép Frontend (sau này) gọi API
   app.enableCors(); 
 
   await app.listen(7000);
+  console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();

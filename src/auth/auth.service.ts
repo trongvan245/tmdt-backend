@@ -4,6 +4,7 @@ import { RegisterDto, LoginDto } from './dto/auth.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { Role } from '@prisma/client';
 
 @Injectable()
 export class AuthService {
@@ -23,7 +24,7 @@ export class AuthService {
           email: dto.email,
           password: hashedPassword,
           fullName: dto.fullName,
-          role: dto.role || 'CUSTOMER',
+          role: dto.role || Role.BUYER,
         },
       });
 
@@ -66,7 +67,7 @@ export class AuthService {
     };
 
     const token = await this.jwt.signAsync(payload, {
-      expiresIn: '1d', // Token sống 1 ngày
+      expiresIn: '30d', // Token sống 1 ngày
       secret: process.env.JWT_SECRET,
     });
 
