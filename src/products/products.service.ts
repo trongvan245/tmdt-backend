@@ -109,4 +109,17 @@ export class ProductsService {
       where: { id },
     });
   }
+
+  async uploadImages(productId: number, files: Array<Express.Multer.File>) {
+  const imageUrls = files.map(file => `/uploads/products/${file.filename}`);
+
+  return this.prisma.product.update({
+    where: { id: productId },
+    data: {
+      images: {
+        push: imageUrls, // Tính năng của Prisma với Postgres: thêm vào mảng hiện có
+      },
+    },
+  });
+}
 }

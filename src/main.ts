@@ -4,7 +4,15 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
+import * as fs from 'fs'; // 1. Import module fs
+
 async function bootstrap() {
+  const uploadDir = './uploads/products';
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true }); // recursive: true để tạo cả thư mục cha nếu thiếu
+    console.log(`✅ Đã tạo thư mục: ${uploadDir}`);
+  }
+  
   const app = await NestFactory.create(AppModule);
 
   // 1. Kích hoạt Validation cho DTO

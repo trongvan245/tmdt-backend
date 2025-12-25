@@ -8,6 +8,9 @@ import { UsersModule } from './users/users.module';
 import { ProductsModule } from './products/products.module';
 import { ShopsModule } from './shops/shops.module';
 import { OrdersModule } from './orders/orders.module';
+
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 // ... các import khác
 
 @Module({
@@ -18,6 +21,10 @@ import { OrdersModule } from './orders/orders.module';
     ProductsModule, 
     ShopsModule,
     OrdersModule,
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'), // Thư mục lưu ảnh gốc
+      serveRoot: '/uploads', // Đường dẫn ảo trên URL
+    }),
     // ...
   ],
   controllers: [],
