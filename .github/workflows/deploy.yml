@@ -25,6 +25,9 @@ jobs:
             # 3. Cài package mới (nếu có)
             npm install
 
+            # Extra: Cài ts-node và typescript toàn cục (nếu chưa có)
+            npm install -g ts-node typescript
+
             # 4. Generate Prisma Client (Bắt buộc để code hiểu DB)
             npx prisma generate
 

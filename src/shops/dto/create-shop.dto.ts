@@ -8,6 +8,11 @@ export class CreateShopDto {
   @MaxLength(100)
   name: string;
 
+  @ApiPropertyOptional({ example: 'Bát Tràng', description: 'Tên làng nghề' })
+  @IsOptional()
+  @IsString()
+  villageName?: string;
+
   @ApiPropertyOptional({ example: 'Chuyên cung cấp gốm sứ thủ công...', description: 'Mô tả cửa hàng' })
   @IsOptional()
   @IsString()

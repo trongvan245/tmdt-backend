@@ -7,11 +7,21 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'fs'; // 1. Import module fs
 
 async function bootstrap() {
-  const uploadDir = './uploads/products';
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true }); // recursive: true để tạo cả thư mục cha nếu thiếu
-    console.log(`✅ Đã tạo thư mục: ${uploadDir}`);
-  }
+  const dirs = ['./uploads/products', './uploads/shops'];
+  
+  dirs.forEach(dir => {
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+      console.log(`✅ Đã tạo thư mục: ${dir}`);
+    }
+  });
+
+
+  // const uploadDir = './uploads/products';
+  // if (!fs.existsSync(uploadDir)) {
+  //   fs.mkdirSync(uploadDir, { recursive: true }); // recursive: true để tạo cả thư mục cha nếu thiếu
+  //   console.log(`✅ Đã tạo thư mục: ${uploadDir}`);
+  // }
   
   const app = await NestFactory.create(AppModule);
 
