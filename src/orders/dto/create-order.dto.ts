@@ -1,16 +1,15 @@
-import { IsNotEmpty, IsString, IsNumber, Min, ValidateNested, IsArray, IsPhoneNumber } from 'class-validator';
+import { IsNotEmpty, IsString, IsArray, ValidateNested, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 class OrderItemDto {
-  @ApiProperty({ example: 1, description: 'ID sản phẩm' })
+  @ApiProperty({ example: 1, description: 'ID Sản phẩm' })
+  @IsInt()
   @IsNotEmpty()
-  @IsNumber()
   productId: number;
 
   @ApiProperty({ example: 2, description: 'Số lượng mua' })
-  @IsNotEmpty()
-  @IsNumber()
+  @IsInt()
   @Min(1)
   quantity: number;
 }
@@ -29,6 +28,6 @@ export class CreateOrderDto {
 
   @ApiProperty({ example: '0987654321', description: 'Số điện thoại người nhận' })
   @IsNotEmpty()
-  @IsString() // Hoặc @IsPhoneNumber('VN') nếu muốn chặt chẽ
+  @IsString()
   phone: string;
 }

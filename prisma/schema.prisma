@@ -49,6 +49,7 @@ model Shop {
   createdAt   DateTime @default(now())
   
   owner    User      @relation(fields: [ownerId], references: [id])
+  orders   Order[]
   products Product[]
   blogs    Blog[]    
 }
@@ -100,21 +101,36 @@ model Product {
   orderItems OrderItem[]
 }
 
+enum OrderStatus {
+  PENDING     // Chờ xác nhận
+  PREPARING   // Người bán đang chuẩn bị hàng
+  SHIPPING    // Đang giao hàng
+  COMPLETED   // Giao thành công / Đã nhận
+  CANCELLED   // Đã hủy
+}
 model Order {
-  id            Int      @id @default(autoincrement())
-  userId        Int
+  id          Int      @id @default(autoincrement())
   
-  // POSTGRESQL: Dùng Decimal
-  totalAmount   Decimal  @db.Decimal(15, 2)
-  status        String   @default("PENDING") 
-  
-  // RÚT GỌN: Địa chỉ lưu string
-  address       String   
-  phone         String
-  createdAt     DateTime @default(now())
+  // Liên kết người mua
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id])
 
-  user       User        @relation(fields: [userId], references: [id])
-  orderItems OrderItem[]
+  // --- THÊM MỚI: Liên kết trực tiếp với Shop ---
+  shopId      Int
+  shop        Shop     @relation(fields: [shopId], references: [id])
+  // -------------------------------------------
+
+  totalAmount Decimal  @db.Decimal(15, 2)
+  
+  // Đổi String -> Enum
+  status      OrderStatus @default(PENDING)
+  
+  address     String
+  phone       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orderItems  OrderItem[]
 }
 
 model OrderItem {
@@ -122,10 +138,10 @@ model OrderItem {
   orderId   Int
   productId Int
   quantity  Int
-  price     Decimal @db.Decimal(15, 2) // Giá lúc mua
+  price     Decimal @db.Decimal(15, 2)
 
-  order   Order   @relation(fields: [orderId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
 }
 
 model Review {
