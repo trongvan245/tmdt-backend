@@ -104,4 +104,19 @@ export class ProductsController {
     }
     return this.productsService.uploadImages(id, files);
   }
+
+  @Get('shop/:shopId')
+  @ApiOperation({ summary: 'Lấy danh sách sản phẩm của một Shop (Có phân trang)' })
+  @ApiResponse({ status: 200, description: 'Trả về danh sách sản phẩm.' })
+  findByShop(
+    @Param('shopId', ParseIntPipe) shopId: number,
+    @Query('page') page?: number,  // Query param tùy chọn
+    @Query('limit') limit?: number, // Query param tùy chọn
+  ) {
+    // Mặc định page = 1, limit = 10 nếu client không gửi
+    const pageNumber = page ? Number(page) : 1;
+    const limitNumber = limit ? Number(limit) : 10;
+
+    return this.productsService.findByShop(shopId, pageNumber, limitNumber);
+  }
 }

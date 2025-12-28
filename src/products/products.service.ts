@@ -122,4 +122,33 @@ export class ProductsService {
     },
   });
 }
+
+  async findByShop(shopId: number, page: number = 1, limit: number = 10) {
+    const skip = (page - 1) * limit;
+
+    // Chạy song song 2 câu lệnh: Lấy data và Đếm tổng số (để FE chia trang)
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where: { shopId },
+        take: limit,
+        skip: skip,
+        orderBy: { createdAt: 'desc' }, // Sản phẩm mới nhất lên đầu
+        include: {
+          // Lấy thêm thông tin Shop (chỉ lấy tên và avatar cho nhẹ)
+          shop: { select: { name: true, avatarUrl: true, isVerified: true } },
+        },
+      }),
+      this.prisma.product.count({ where: { shopId } }),
+    ]);
+
+    return {
+      data: products,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
 }

@@ -5,316 +5,237 @@ import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
-async function main() {
-  console.log('🌱 Bắt đầu tạo dữ liệu mẫu...');
+// --- 1. CẤU HÌNH RANDOM CỐ ĐỊNH (DETERMINISTIC RANDOM) ---
 
-  // 1. XÓA DỮ LIỆU CŨ (Để tránh trùng lặp khi chạy lại)
-  // Thứ tự xóa quan trọng để tránh lỗi khóa ngoại (Foreign Key)
+// Thuật toán Mulberry32: Tạo số ngẫu nhiên có Seed
+function mulberry32(a: number) {
+  return function() {
+    var t = a += 0x6D2B79F5;
+    t = Math.imul(t ^ t >>> 15, t | 1);
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  }
+}
+
+// Khởi tạo hàm random với seed cố định (Thay đổi số này sẽ đổi toàn bộ dữ liệu)
+const seed = 54321; 
+const random = mulberry32(seed);
+
+// Hàm lấy số nguyên trong khoảng min-max (Sử dụng hàm random đã seed)
+function getSeededRandomInt(min: number, max: number) {
+  return Math.floor(random() * (max - min + 1)) + min;
+}
+
+// Hàm tạo slug (giữ nguyên)
+function slugify(text: string) {
+  // Vì ngày giờ chạy mỗi lúc một khác, ta fix cứng timestamp trong slug 
+  // để đảm bảo tính nhất quán tuyệt đối, hoặc bỏ timestamp đi.
+  // Ở đây tôi giữ logic cũ nhưng thay Date.now() bằng 1 số cố định cho đẹp.
+  return text.toString().toLowerCase()
+    .replace(/\s+/g, '-')           
+    .replace(/[^\w\-]+/g, '')       
+    .replace(/\-\-+/g, '-')         
+    .replace(/^-+/, '')             
+    .replace(/-+$/, '') + '-1700000000'; // Hardcode timestamp giả
+}
+
+async function main() {
+  console.log('🌱 Bắt đầu tạo dữ liệu mẫu (Seeded Mode)...');
+
+  // XÓA DỮ LIỆU CŨ
   await prisma.review.deleteMany();
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
   await prisma.product.deleteMany();
+  await prisma.blog.deleteMany(); 
   await prisma.shop.deleteMany();
   await prisma.user.deleteMany();
 
   console.log('🗑️  Đã xóa sạch dữ liệu cũ.');
 
-  // 2. TẠO USER (Mật khẩu chung là: 123456)
+  // TẠO PASSWORD HASH
   const salt = await bcrypt.genSalt(10);
   const passwordHash = await bcrypt.hash('123456', salt);
 
-  // --- Tạo Admin ---
+  // TẠO USER 
   await prisma.user.create({
-    data: {
-      email: 'admin@craftviet.com',
-      password: passwordHash,
-      fullName: 'Quản Trị Viên',
-      role: Role.ADMIN,
-    },
+    data: { email: 'admin@craftviet.com', password: passwordHash, fullName: 'Quản Trị Viên', role: Role.ADMIN },
   });
 
-  // --- Tạo Sellers (Chủ shop) ---
-  const seller1 = await prisma.user.create({
-    data: {
-      email: 'nghe_nhan_gom@gmail.com',
-      password: passwordHash,
-      fullName: 'Nghệ Nhân Lê Văn Gốm',
-      role: Role.SELLER,
-    },
-  });
-
-  const seller2 = await prisma.user.create({
-    data: {
-      email: 'co_ba_lua@gmail.com',
-      password: passwordHash,
-      fullName: 'Cô Ba Lụa',
-      role: Role.SELLER,
-    },
-  });
-
-  const seller3 = await prisma.user.create({
-    data: {
-      email: 'chu_tu_tre@gmail.com',
-      password: passwordHash,
-      fullName: 'Chú Tư Tre',
-      role: Role.SELLER,
-    },
-  });
-
-  // --- Tạo Buyers (Khách hàng) ---
-  const buyer1 = await prisma.user.create({
-    data: {
-      email: 'khachhang1@gmail.com',
-      password: passwordHash,
-      fullName: 'Nguyễn Văn Mua',
-      role: Role.BUYER,
-    },
-  });
-
-  console.log('👤 Đã tạo xong Users.');
-
-  // 3. TẠO SHOPS (Kèm câu chuyện làng nghề)
-  
-  // Shop 1: Gốm Bát Tràng
-  const shopGom = await prisma.shop.create({
-    data: {
-      ownerId: seller1.id,
-      name: 'Gốm Xưa Bát Tràng',
-      // THÊM:
-      villageName: 'Bát Tràng', 
-      description: 'Gìn giữ tinh hoa gốm Việt...',
-      isVerified: true,
-      avatarUrl: 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?q=80&w=2070&auto=format&fit=crop',
-      coverUrl: 'https://images.unsplash.com/photo-1565193566173-0929d995e80c?q=80&w=2070&auto=format&fit=crop',
-    },
-  });
-
-  const shopLua = await prisma.shop.create({
-    data: {
-      ownerId: seller2.id,
-      name: 'Lụa Tơ Tằm Hà Đông',
-      // THÊM:
-      villageName: 'Vạn Phúc',
-      description: 'Nơi dệt nên những dải lụa mềm mại...',
-      isVerified: true,
-      avatarUrl: 'https://images.unsplash.com/photo-1629196914168-3a9644338cf5?q=80&w=2070&auto=format&fit=crop',
-      coverUrl: 'https://images.unsplash.com/photo-1528459199957-0ff28096a7e6?q=80&w=2069&auto=format&fit=crop',
-    },
-  });
-
-  const shopTre = await prisma.shop.create({
-    data: {
-      ownerId: seller3.id,
-      name: 'Mây Tre Phú Vinh',
-      // THÊM:
-      villageName: 'Phú Vinh',
-      description: 'Sản phẩm thân thiện môi trường...',
-      isVerified: false,
-      avatarUrl: 'https://plus.unsplash.com/premium_photo-1664304899532-349f2b84f3df?q=80&w=2070&auto=format&fit=crop',
-      coverUrl: 'https://images.unsplash.com/photo-1519643381401-22c77e60520e?q=80&w=2073&auto=format&fit=crop',
-    },
-  });
-
-  console.log('uD83CuDFEA Đã tạo xong Shops.');
-
-  // 4. TẠO PRODUCTS (Sản phẩm mẫu)
-
-  // --- Sản phẩm Gốm ---
-  await prisma.product.create({
-    data: {
-      shopId: shopGom.id,
-      name: 'Bình Hoa Men Lam Cổ',
-      description: 'Bình hoa dáng tỏi, vẽ họa tiết hoa sen dây. Men lam sắc nét, nung ở nhiệt độ 1300 độ C loại bỏ hoàn toàn tạp chất.',
-      price: 550000,
-      stockQuantity: 20,
-      category: 'Gốm sứ',
-      material: 'Đất sét trắng',
-      origin: 'Bát Tràng',
-      images: [
-        'https://images.unsplash.com/photo-1578749556935-ef3893fb8d6c?q=80&w=2070&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1610701596007-11502861dcfa?q=80&w=2070&auto=format&fit=crop'
-      ],
-      reviews: {
-        create: [
-          { userId: buyer1.id, rating: 5, comment: 'Bình rất đẹp, men sáng bóng, đóng gói kỹ.' },
-        ]
-      }
-    },
-  });
-
-  await prisma.product.create({
-    data: {
-      shopId: shopGom.id,
-      name: 'Bộ Ấm Chén Tử Sa',
-      description: 'Bộ ấm chén đất tử sa giữ nhiệt tốt, lưu hương trà lâu. Phù hợp cho người sành trà.',
-      price: 1200000,
-      stockQuantity: 10,
-      category: 'Gốm sứ',
-      material: 'Đất Tử Sa',
-      origin: 'Bát Tràng',
-      images: [
-        'https://images.unsplash.com/photo-1550953041-0775d78a995e?q=80&w=2070&auto=format&fit=crop'
-      ]
-    },
-  });
-
-  // --- Sản phẩm Lụa ---
-  await prisma.product.create({
-    data: {
-      shopId: shopLua.id,
-      name: 'Khăn Choàng Lụa Sen',
-      description: 'Khăn lụa tơ tằm thêu tay hoa sen. Mềm mại, mát vào mùa hè, ấm vào mùa đông.',
-      price: 850000,
-      stockQuantity: 50,
-      category: 'Thời trang',
-      material: 'Lụa tơ tằm',
-      origin: 'Vạn Phúc',
-      images: [
-        'https://images.unsplash.com/photo-1606504547901-4470d069c94b?q=80&w=2070&auto=format&fit=crop',
-      ]
-    },
-  });
-
-  // --- Sản phẩm Tre ---
-  await prisma.product.create({
-    data: {
-      shopId: shopTre.id,
-      name: 'Đèn Lồng Tre Thả Trần',
-      description: 'Đèn lồng đan thủ công, tạo hiệu ứng ánh sáng ấm áp cho phòng khách hoặc quán cafe.',
-      price: 350000,
-      stockQuantity: 100,
-      category: 'Trang trí nhà cửa',
-      material: 'Tre già',
-      origin: 'Phú Vinh',
-      images: [
-        'https://images.unsplash.com/photo-1513694203232-719a280e022f?q=80&w=2069&auto=format&fit=crop',
-      ],
-      reviews: {
-        create: [
-          { userId: buyer1.id, rating: 4, comment: 'Đèn đẹp nhưng dây treo hơi ngắn.' },
-        ]
-      }
-    },
-  });
-
-  console.log('📦 Đã tạo xong Products.');
-
-  console.log('📝 Đang tạo dữ liệu Blog...');
-
-  const blogsData = [
-    {
-      title: 'Lịch sử 500 năm làng gốm Bát Tràng',
-      slug: 'lich-su-500-nam-lang-gom-bat-trang',
-      description: 'Khám phá hành trình hơn 5 thế kỷ phát triển của làng nghề gốm sứ nổi tiếng nhất Việt Nam, từ những lò gốm đầu tiên đến ngày nay.',
-      tags: ['Lịch sử'],
-      coverUrl: 'https://placehold.co/600x400?text=Lich+Su+Bat+Trang',
-      // Update theo ảnh: 15/11/2024 - 8 phút đọc
-      createdAt: new Date('2024-11-15T08:00:00Z'),
-      readingTime: '8 phút đọc',
-      content: `
-# Hành trình 5 thế kỷ
-
-Làng gốm Bát Tràng nằm bên tả ngạn sông Hồng... (Nội dung rút gọn)
-      `
-    },
-    {
-      title: 'Quy trình làm gốm truyền thống',
-      slug: 'quy-trinh-lam-gom-truyen-thong',
-      description: 'Tìm hiểu 7 bước cơ bản trong quy trình sản xuất gốm Bát Tràng, từ chọn đất, nặn, trang trí cho đến nung và hoàn thiện sản phẩm.',
-      tags: ['Nghề thủ công'],
-      coverUrl: 'https://placehold.co/600x400?text=Quy+Trinh+Lam+Gom',
-      // Update theo ảnh: 12/11/2024 - 10 phút đọc
-      createdAt: new Date('2024-11-12T09:00:00Z'),
-      readingTime: '10 phút đọc',
-      content: `
-# 7 Bước làm gốm tinh xảo
-
-Để tạo ra một sản phẩm gốm Bát Tràng hoàn chỉnh... (Nội dung rút gọn)
-      `
-    },
-    {
-      title: 'Lò nung gốm - Trái tim của làng nghề',
-      slug: 'lo-nung-gom-trai-tim-cua-lang-nghe',
-      description: 'Lò bầu cổ truyền thống và lò gas hiện đại - Sự kết hợp hoàn hảo giữa truyền thống và công nghệ trong làng gốm Bát Tràng.',
-      tags: ['Công nghệ'],
-      coverUrl: 'https://placehold.co/600x400?text=Lo+Nung+Gom',
-      // Update theo ảnh: 08/11/2024 - 6 phút đọc
-      createdAt: new Date('2024-11-08T10:30:00Z'),
-      readingTime: '6 phút đọc',
-      content: `
-# Sự chuyển mình của công nghệ nung
-
-Lò nung được ví như "trái tim" quyết định sự thành bại... (Nội dung rút gọn)
-      `
-    },
-    {
-      title: 'Nghệ nhân nổi tiếng của Bát Tràng',
-      slug: 'nghe-nhan-noi-tieng-cua-bat-trang',
-      description: 'Gặp gỡ các bậc thầy gốm sứ, những người đã cống hiến cả đời cho nghề và được vinh danh với danh hiệu Nghệ nhân nhân dân.',
-      tags: ['Con người'],
-      coverUrl: 'https://placehold.co/600x400?text=Nghe+Nhan',
-      // Update theo ảnh: 05/11/2024 - 7 phút đọc
-      createdAt: new Date('2024-11-05T14:00:00Z'),
-      readingTime: '7 phút đọc',
-      content: `
-# Những bàn tay vàng
-
-Bát Tràng là nơi sản sinh ra nhiều nghệ nhân tài hoa nhất... (Nội dung rút gọn)
-      `
-    },
-    {
-      title: 'Nghệ thuật vẽ hoa văn trên gốm',
-      slug: 'nghe-thuat-ve-hoa-van-tren-gom',
-      description: 'Khám phá các họa tiết truyền thống Việt Nam và kỹ thuật vẽ tay tinh xảo tạo nên vẻ đẹp độc đáo cho sản phẩm gốm Bát Tràng.',
-      tags: ['Nghệ thuật'],
-      coverUrl: 'https://placehold.co/600x400?text=Ve+Hoa+Van',
-      // Update theo ảnh: 01/11/2024 - 9 phút đọc
-      createdAt: new Date('2024-11-01T15:45:00Z'),
-      readingTime: '9 phút đọc',
-      content: `
-# Nét bút trên đất
-
-Khác với gốm sứ công nghiệp in decal, gốm Bát Tràng... (Nội dung rút gọn)
-      `
-    },
-    {
-      title: 'Trải nghiệm làm gốm tại Bát Tràng',
-      slug: 'trai-nghiem-lam-gom-tai-bat-trang',
-      description: 'Hướng dẫn chi tiết để du khách có thể tự tay nặn và trang trí sản phẩm gốm của riêng mình khi đến thăm làng nghề.',
-      tags: ['Du lịch'],
-      coverUrl: 'https://placehold.co/600x400?text=Trai+Nghiem+Lam+Gom',
-      // Update theo ảnh: 28/10/2024 - 5 phút đọc
-      createdAt: new Date('2024-10-28T08:15:00Z'),
-      readingTime: '5 phút đọc',
-      content: `
-# Một ngày làm thợ gốm
-
-Nếu bạn ghé thăm Bát Tràng cuối tuần, đừng bỏ qua... (Nội dung rút gọn)
-      `
-    },
+  const sellers = [];
+  const sellersData = [
+    { email: 'nghe_nhan_gom@gmail.com', name: 'Nghệ Nhân Lê Văn Gốm' },
+    { email: 'seller_gom@gmail.com', name: 'Nghệ Nhân Lê Văn Gốm' },     
+    { email: 'seller_lua@gmail.com', name: 'Cô Ba Lụa' },               
+    { email: 'seller_tre@gmail.com', name: 'Chú Tư Tre' },              
+    { email: 'seller_go@gmail.com', name: 'Bác Năm Mộc' },              
+    { email: 'seller_sonmai@gmail.com', name: 'Họa Sĩ Hạ Thái' },       
+    { email: 'seller_dong@gmail.com', name: 'Anh Sáu Đồng' },           
+    { email: 'seller_da@gmail.com', name: 'Chị Bảy Non Nước' },         
+    { email: 'seller_theu@gmail.com', name: 'Cô Tám Thêu' },            
+    { email: 'seller_tranh@gmail.com', name: 'Nghệ Nhân Đông Hồ' },     
+    { email: 'seller_coi@gmail.com', name: 'Dì Chín Cói' },             
   ];
 
-  for (const blog of blogsData) {
+  for (const s of sellersData) {
+    const user = await prisma.user.create({
+      data: { email: s.email, password: passwordHash, fullName: s.name, role: Role.SELLER },
+    });
+    sellers.push(user);
+  }
+  
+  // Tạo Buyer
+  await prisma.user.create({ data: { email: 'khachhang1@gmail.com', password: passwordHash, fullName: 'Nguyễn Văn Mua', role: Role.BUYER } });
+  await prisma.user.create({ data: { email: 'khachhang2@gmail.com', password: passwordHash, fullName: 'Trần Thị Sắm', role: Role.BUYER } });
+
+  console.log(`👤 Đã tạo xong Users.`);
+
+  // TẠO SHOPS
+  const shopsData = [
+    { ownerIdx: 0, name: 'Gốm Xưa Bát Tràng', village: 'Bát Tràng, Hà Nội', img: 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?q=80&w=2070', desc: 'Tinh hoa gốm Việt ngàn năm.' },
+    { ownerIdx: 1, name: 'Lụa Tơ Tằm Hà Đông', village: 'Vạn Phúc, Hà Đông', img: 'https://images.unsplash.com/photo-1629196914168-3a9644338cf5?q=80&w=2070', desc: 'Lụa mềm mại, dệt thủ công.' },
+    { ownerIdx: 2, name: 'Mây Tre Phú Vinh', village: 'Phú Vinh, Chương Mỹ', img: 'https://plus.unsplash.com/premium_photo-1664304899532-349f2b84f3df?q=80&w=2070', desc: 'Sản phẩm xanh cho cuộc sống xanh.' },
+    { ownerIdx: 3, name: 'Đồ Gỗ Đồng Kỵ', village: 'Đồng Kỵ, Bắc Ninh', img: 'https://images.unsplash.com/photo-1611269154421-4e27233ac5c7?q=80&w=2070', desc: 'Đồ gỗ mỹ nghệ chạm khắc tinh xảo.' },
+    { ownerIdx: 4, name: 'Sơn Mài Hạ Thái', village: 'Hạ Thái, Thường Tín', img: 'https://images.unsplash.com/photo-1577083552431-6e5fd01988ec?q=80&w=2070', desc: 'Nghệ thuật sơn mài truyền thống.' },
+    { ownerIdx: 5, name: 'Đúc Đồng Đại Bái', village: 'Đại Bái, Bắc Ninh', img: 'https://images.unsplash.com/photo-1536622471676-e10693240292?q=80&w=2070', desc: 'Đồ thờ cúng và tượng đồng cao cấp.' },
+    { ownerIdx: 6, name: 'Đá Mỹ Nghệ Non Nước', village: 'Non Nước, Đà Nẵng', img: 'https://images.unsplash.com/photo-1596394516093-501ba68a0ba6?q=80&w=2070', desc: 'Điêu khắc đá nghệ thuật.' },
+    { ownerIdx: 7, name: 'Thêu Tay Quất Động', village: 'Quất Động, Thường Tín', img: 'https://images.unsplash.com/photo-1622396636133-743013d5b1b9?q=80&w=2070', desc: 'Tranh thêu tay tỉ mỉ từng đường kim.' },
+    { ownerIdx: 8, name: 'Tranh Dân Gian Đông Hồ', village: 'Song Hồ, Thuận Thành', img: 'https://images.unsplash.com/photo-1583853272268-07d0d0f796bd?q=80&w=2070', desc: 'Màu dân tộc sáng bừng trên giấy điệp.' },
+    { ownerIdx: 9, name: 'Chiếu Cói Kim Sơn', village: 'Kim Sơn, Ninh Bình', img: 'https://images.unsplash.com/photo-1605646399084-2e213348006e?q=80&w=2070', desc: 'Chiếu cói bền đẹp, thoáng mát.' },
+  ];
+
+  const createdShops = [];
+  for (const s of shopsData) {
+    const shop = await prisma.shop.create({
+      data: {
+        ownerId: sellers[s.ownerIdx].id,
+        name: s.name,
+        villageName: s.village,
+        description: s.desc,
+        isVerified: true,
+        avatarUrl: s.img,
+        coverUrl: s.img,
+      },
+    });
+    createdShops.push(shop);
+  }
+
+  console.log(`🏪 Đã tạo xong Shops.`);
+
+  // TẠO PRODUCTS (Random Deterministic)
+  
+  const productsData = [
+    // Gốm
+    { shopIdx: 0, name: 'Bình Hoa Men Lam Cổ', cat: 'Gốm sứ', price: 550000, stock: 20 },
+    { shopIdx: 0, name: 'Bộ Ấm Chén Tử Sa', cat: 'Gốm sứ', price: 1200000, stock: 10 },
+    { shopIdx: 0, name: 'Lọ Lộc Bình Phong Thủy', cat: 'Gốm sứ', price: 2500000, stock: 5 },
+    // Lụa
+    { shopIdx: 1, name: 'Khăn Choàng Lụa Sen', cat: 'Thời trang', price: 850000, stock: 50 },
+    { shopIdx: 1, name: 'Áo Dài Lụa Tơ Tằm', cat: 'Thời trang', price: 3500000, stock: 15 },
+    // Tre
+    { shopIdx: 2, name: 'Đèn Lồng Tre Thả Trần', cat: 'Trang trí', price: 350000, stock: 100 },
+    { shopIdx: 2, name: 'Giỏ Mây Picnic Vintage', cat: 'Phụ kiện', price: 250000, stock: 40 },
+    // Gỗ
+    { shopIdx: 3, name: 'Tượng Di Lặc Gỗ Hương', cat: 'Đồ gỗ', price: 4500000, stock: 3 },
+    { shopIdx: 3, name: 'Khay Trà Gỗ Trắc', cat: 'Đồ gỗ', price: 1800000, stock: 8 },
+    { shopIdx: 3, name: 'Hộp Đựng Trang Sức Gỗ', cat: 'Đồ gỗ', price: 600000, stock: 20 },
+    // Sơn Mài
+    { shopIdx: 4, name: 'Tranh Sơn Mài Tứ Quý', cat: 'Tranh nghệ thuật', price: 8000000, stock: 2 },
+    { shopIdx: 4, name: 'Bình Hoa Sơn Mài Cẩn Trứng', cat: 'Trang trí', price: 1500000, stock: 10 },
+    // Đồng
+    { shopIdx: 5, name: 'Lư Xông Trầm Bằng Đồng', cat: 'Đồ thờ', price: 950000, stock: 15 },
+    { shopIdx: 5, name: 'Hạc Đồng Cưỡi Quy', cat: 'Đồ thờ', price: 3200000, stock: 5 },
+    // Đá
+    { shopIdx: 6, name: 'Tượng Phật Quan Âm Đá Non Nước', cat: 'Tượng đá', price: 2100000, stock: 5 },
+    { shopIdx: 6, name: 'Cối Đá Mini Trang Trí', cat: 'Trang trí', price: 300000, stock: 30 },
+    // Thêu
+    { shopIdx: 7, name: 'Tranh Thêu Tay Hoa Mẫu Đơn', cat: 'Tranh nghệ thuật', price: 4200000, stock: 4 },
+    { shopIdx: 7, name: 'Khăn Tay Thêu Tên', cat: 'Phụ kiện', price: 150000, stock: 100 },
+    // Đông Hồ
+    { shopIdx: 8, name: 'Bộ Tranh Đám Cưới Chuột', cat: 'Tranh dân gian', price: 200000, stock: 50 },
+    // Cói
+    { shopIdx: 9, name: 'Túi Xách Cói Thời Trang', cat: 'Phụ kiện', price: 280000, stock: 60 },
+  ];
+
+  let prodCount = 0;
+  for (const p of productsData) {
+    // Sử dụng getSeededRandomInt thay vì Math.random
+    // Dù bạn chạy script này bao nhiêu lần, "Bình Hoa Men Lam Cổ" sẽ luôn có soldCount giống hệt nhau
+    const randomSold = getSeededRandomInt(10, 500);
+    const randomView = getSeededRandomInt(randomSold + 50, 3000); 
+
+    await prisma.product.create({
+      data: {
+        shopId: createdShops[p.shopIdx].id,
+        name: p.name,
+        description: `Sản phẩm thủ công cao cấp từ ${createdShops[p.shopIdx].villageName}.`,
+        price: p.price,
+        stockQuantity: p.stock,
+        category: p.cat,
+        material: 'Tự nhiên',
+        origin: createdShops[p.shopIdx].villageName,
+        images: [`https://placehold.co/600x600?text=${encodeURIComponent(p.name)}`],
+        
+        soldCount: randomSold,
+      },
+    });
+    prodCount++;
+  }
+
+  console.log(`📦 Đã tạo xong ${prodCount} Products.`);
+
+  // TẠO BLOGS
+  const blogsGom = [
+    { title: 'Lịch sử 500 năm làng gốm Bát Tràng', date: '2024-11-15T08:00:00Z', read: '8 phút đọc' },
+    { title: 'Quy trình làm gốm truyền thống', date: '2024-11-12T09:00:00Z', read: '10 phút đọc' },
+    { title: 'Lò nung gốm - Trái tim của làng nghề', date: '2024-11-08T10:30:00Z', read: '6 phút đọc' },
+    { title: 'Nghệ nhân nổi tiếng của Bát Tràng', date: '2024-11-05T14:00:00Z', read: '7 phút đọc' },
+    { title: 'Nghệ thuật vẽ hoa văn trên gốm', date: '2024-11-01T15:45:00Z', read: '9 phút đọc' },
+    { title: 'Trải nghiệm làm gốm tại Bát Tràng', date: '2024-10-28T08:15:00Z', read: '5 phút đọc' },
+  ];
+
+  const blogsMoi = [
+    { title: 'Cách bảo quản đồ gỗ mỹ nghệ bền đẹp', date: '2024-11-20T08:00:00Z', read: '5 phút đọc', shopIdx: 3, tags: ['Mẹo vặt', 'Đồ gỗ'] },
+    { title: 'Phân biệt lụa tơ tằm thật và giả', date: '2024-11-18T09:30:00Z', read: '7 phút đọc', shopIdx: 1, tags: ['Kiến thức', 'Lụa'] },
+    { title: 'Ý nghĩa tranh Đông Hồ ngày Tết', date: '2024-11-25T10:00:00Z', read: '6 phút đọc', shopIdx: 8, tags: ['Văn hóa', 'Tranh'] },
+    { title: 'Quy trình làm tranh sơn mài công phu', date: '2024-11-22T14:15:00Z', read: '12 phút đọc', shopIdx: 4, tags: ['Nghệ thuật', 'Sơn mài'] },
+  ];
+
+  for (const b of blogsGom) {
     await prisma.blog.create({
       data: {
-        shopId: shopGom.id,
-        title: blog.title,
-        slug: blog.slug,
-        description: blog.description,
-        content: blog.content,
-        coverUrl: blog.coverUrl,
-        tags: blog.tags,
+        shopId: createdShops[0].id,
+        title: b.title,
+        slug: slugify(b.title),
+        description: 'Bài viết chi tiết về làng nghề...',
+        content: '# Nội dung bài viết \n\n Đây là nội dung chi tiết...',
+        coverUrl: 'https://placehold.co/600x400?text=Blog+Gom',
+        tags: ['Gốm sứ', 'Văn hóa'],
         isPublished: true,
-        // Ghi đè thông tin ngày tháng và thời gian đọc
-        createdAt: blog.createdAt, 
-        readingTime: blog.readingTime,
+        createdAt: new Date(b.date),
+        readingTime: b.read,
       },
     });
   }
 
-  console.log(`✅ Đã tạo xong ${blogsData.length} bài Blog với ngày tháng tùy chỉnh.`);
+  for (const b of blogsMoi) {
+    await prisma.blog.create({
+      data: {
+        shopId: createdShops[b.shopIdx].id,
+        title: b.title,
+        slug: slugify(b.title),
+        description: `Tìm hiểu về ${b.title}...`,
+        content: '# Nội dung bài viết \n\n Kiến thức bổ ích...',
+        coverUrl: `https://placehold.co/600x400?text=${encodeURIComponent(b.title)}`,
+        tags: b.tags,
+        isPublished: true,
+        createdAt: new Date(b.date),
+        readingTime: b.read,
+      },
+    });
+  }
 
-  
+  console.log(`✅ Đã tạo xong Blogs.`);
   console.log('✅ SEEDING HOÀN TẤT!');
 }
 
