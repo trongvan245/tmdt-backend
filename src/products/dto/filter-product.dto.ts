@@ -22,6 +22,12 @@ export class FilterProductDto {
   @IsString()
   search?: string;
 
+  @ApiPropertyOptional({ description: 'Lọc sản phẩm theo ID cửa hàng' })
+  @IsOptional()
+  @Type(() => Number) // Chuyển "1" (string) thành 1 (number)
+  @IsNumber()
+  shopId?: number;
+
   @ApiPropertyOptional({ description: 'Lọc theo danh mục' })
   @IsOptional()
   @IsString()

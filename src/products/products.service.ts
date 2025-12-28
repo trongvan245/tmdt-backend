@@ -30,13 +30,14 @@ export class ProductsService {
 
   // 2. Lấy danh sách (Filter & Pagination)
   async findAll(query: FilterProductDto) {
-    const { page, limit, search, category, minPrice, maxPrice, sortBy } = query;
+    const { page, limit, search, category, minPrice, maxPrice, sortBy, shopId } = query;
     const skip = (page - 1) * limit;
 
     // Xây dựng điều kiện lọc
     const where: Prisma.ProductWhereInput = {
       AND: [
         search ? { name: { contains: search, mode: 'insensitive' } } : {},
+        shopId ? { shopId: { equals: shopId } } : {},
         category ? { category: { equals: category } } : {},
         minPrice ? { price: { gte: minPrice } } : {},
         maxPrice ? { price: { lte: maxPrice } } : {},
