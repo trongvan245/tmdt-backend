@@ -9,6 +9,7 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserPayload } from 'src/common/model/user.model';
 import { CurrentUser } from 'src/common/decorator/user.decorator';
+import { Public } from 'src/auth/public.decorator';
 
 @ApiTags('blogs')
 @Controller('blogs')
@@ -24,6 +25,7 @@ export class BlogsController {
   }
 
   @Get()
+  @Public()
   @ApiOperation({ summary: 'Danh sách bài viết (Public - Có lọc theo tag, shop, tên)' })
   findAll(@Query() query: FilterBlogDto) {
     console.log('Lấy danh sách blog với filter:', query);
