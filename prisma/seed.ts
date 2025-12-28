@@ -198,6 +198,123 @@ async function main() {
   });
 
   console.log('📦 Đã tạo xong Products.');
+
+  console.log('📝 Đang tạo dữ liệu Blog...');
+
+  const blogsData = [
+    {
+      title: 'Lịch sử 500 năm làng gốm Bát Tràng',
+      slug: 'lich-su-500-nam-lang-gom-bat-trang',
+      description: 'Khám phá hành trình hơn 5 thế kỷ phát triển của làng nghề gốm sứ nổi tiếng nhất Việt Nam, từ những lò gốm đầu tiên đến ngày nay.',
+      tags: ['Lịch sử'],
+      coverUrl: 'https://placehold.co/600x400?text=Lich+Su+Bat+Trang',
+      // Update theo ảnh: 15/11/2024 - 8 phút đọc
+      createdAt: new Date('2024-11-15T08:00:00Z'),
+      readingTime: '8 phút đọc',
+      content: `
+# Hành trình 5 thế kỷ
+
+Làng gốm Bát Tràng nằm bên tả ngạn sông Hồng... (Nội dung rút gọn)
+      `
+    },
+    {
+      title: 'Quy trình làm gốm truyền thống',
+      slug: 'quy-trinh-lam-gom-truyen-thong',
+      description: 'Tìm hiểu 7 bước cơ bản trong quy trình sản xuất gốm Bát Tràng, từ chọn đất, nặn, trang trí cho đến nung và hoàn thiện sản phẩm.',
+      tags: ['Nghề thủ công'],
+      coverUrl: 'https://placehold.co/600x400?text=Quy+Trinh+Lam+Gom',
+      // Update theo ảnh: 12/11/2024 - 10 phút đọc
+      createdAt: new Date('2024-11-12T09:00:00Z'),
+      readingTime: '10 phút đọc',
+      content: `
+# 7 Bước làm gốm tinh xảo
+
+Để tạo ra một sản phẩm gốm Bát Tràng hoàn chỉnh... (Nội dung rút gọn)
+      `
+    },
+    {
+      title: 'Lò nung gốm - Trái tim của làng nghề',
+      slug: 'lo-nung-gom-trai-tim-cua-lang-nghe',
+      description: 'Lò bầu cổ truyền thống và lò gas hiện đại - Sự kết hợp hoàn hảo giữa truyền thống và công nghệ trong làng gốm Bát Tràng.',
+      tags: ['Công nghệ'],
+      coverUrl: 'https://placehold.co/600x400?text=Lo+Nung+Gom',
+      // Update theo ảnh: 08/11/2024 - 6 phút đọc
+      createdAt: new Date('2024-11-08T10:30:00Z'),
+      readingTime: '6 phút đọc',
+      content: `
+# Sự chuyển mình của công nghệ nung
+
+Lò nung được ví như "trái tim" quyết định sự thành bại... (Nội dung rút gọn)
+      `
+    },
+    {
+      title: 'Nghệ nhân nổi tiếng của Bát Tràng',
+      slug: 'nghe-nhan-noi-tieng-cua-bat-trang',
+      description: 'Gặp gỡ các bậc thầy gốm sứ, những người đã cống hiến cả đời cho nghề và được vinh danh với danh hiệu Nghệ nhân nhân dân.',
+      tags: ['Con người'],
+      coverUrl: 'https://placehold.co/600x400?text=Nghe+Nhan',
+      // Update theo ảnh: 05/11/2024 - 7 phút đọc
+      createdAt: new Date('2024-11-05T14:00:00Z'),
+      readingTime: '7 phút đọc',
+      content: `
+# Những bàn tay vàng
+
+Bát Tràng là nơi sản sinh ra nhiều nghệ nhân tài hoa nhất... (Nội dung rút gọn)
+      `
+    },
+    {
+      title: 'Nghệ thuật vẽ hoa văn trên gốm',
+      slug: 'nghe-thuat-ve-hoa-van-tren-gom',
+      description: 'Khám phá các họa tiết truyền thống Việt Nam và kỹ thuật vẽ tay tinh xảo tạo nên vẻ đẹp độc đáo cho sản phẩm gốm Bát Tràng.',
+      tags: ['Nghệ thuật'],
+      coverUrl: 'https://placehold.co/600x400?text=Ve+Hoa+Van',
+      // Update theo ảnh: 01/11/2024 - 9 phút đọc
+      createdAt: new Date('2024-11-01T15:45:00Z'),
+      readingTime: '9 phút đọc',
+      content: `
+# Nét bút trên đất
+
+Khác với gốm sứ công nghiệp in decal, gốm Bát Tràng... (Nội dung rút gọn)
+      `
+    },
+    {
+      title: 'Trải nghiệm làm gốm tại Bát Tràng',
+      slug: 'trai-nghiem-lam-gom-tai-bat-trang',
+      description: 'Hướng dẫn chi tiết để du khách có thể tự tay nặn và trang trí sản phẩm gốm của riêng mình khi đến thăm làng nghề.',
+      tags: ['Du lịch'],
+      coverUrl: 'https://placehold.co/600x400?text=Trai+Nghiem+Lam+Gom',
+      // Update theo ảnh: 28/10/2024 - 5 phút đọc
+      createdAt: new Date('2024-10-28T08:15:00Z'),
+      readingTime: '5 phút đọc',
+      content: `
+# Một ngày làm thợ gốm
+
+Nếu bạn ghé thăm Bát Tràng cuối tuần, đừng bỏ qua... (Nội dung rút gọn)
+      `
+    },
+  ];
+
+  for (const blog of blogsData) {
+    await prisma.blog.create({
+      data: {
+        shopId: shopGom.id,
+        title: blog.title,
+        slug: blog.slug,
+        description: blog.description,
+        content: blog.content,
+        coverUrl: blog.coverUrl,
+        tags: blog.tags,
+        isPublished: true,
+        // Ghi đè thông tin ngày tháng và thời gian đọc
+        createdAt: blog.createdAt, 
+        readingTime: blog.readingTime,
+      },
+    });
+  }
+
+  console.log(`✅ Đã tạo xong ${blogsData.length} bài Blog với ngày tháng tùy chỉnh.`);
+
+  
   console.log('✅ SEEDING HOÀN TẤT!');
 }
 

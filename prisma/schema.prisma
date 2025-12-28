@@ -47,6 +47,29 @@ model Shop {
   
   owner    User      @relation(fields: [ownerId], references: [id])
   products Product[]
+  blogs    Blog[]    
+}
+
+model Blog {
+  id          Int      @id @default(autoincrement())
+  shopId      Int
+  
+  title       String
+  slug        String   @unique // Dùng để làm URL thân thiện (vd: /blog/cach-chon-gom-su)
+  description String?  // Đoạn giới thiệu ngắn (Sapo)
+  content     String   @db.Text // Nội dung Markdown (Text dài)
+  coverUrl    String?  // Ảnh bìa
+  
+  // PostgreSQL hỗ trợ lưu mảng String trực tiếp
+  tags        String[] 
+  
+  readingTime String?
+  
+  isPublished Boolean  @default(true) // Trạng thái nháp/công khai
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  shop        Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
 }
 
 model Product {

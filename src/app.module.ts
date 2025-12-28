@@ -11,6 +11,7 @@ import { OrdersModule } from './orders/orders.module';
 
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { BlogsModule } from './blogs/blogs.module';
 // ... các import khác
 
 @Module({
@@ -25,6 +26,7 @@ import { join } from 'path';
       rootPath: join(__dirname, '..', 'uploads'), // Thư mục lưu ảnh gốc
       serveRoot: '/uploads', // Đường dẫn ảo trên URL
     }),
+    BlogsModule,
     // ...
   ],
   controllers: [],

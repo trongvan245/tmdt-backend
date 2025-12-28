@@ -25,6 +25,12 @@ async function bootstrap() {
   
   const app = await NestFactory.create(AppModule);
 
+  app.enableCors({
+    origin: true, // Cho phép tất cả các domain (Frontend) gọi vào
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
+
   // 1. Kích hoạt Validation cho DTO
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
