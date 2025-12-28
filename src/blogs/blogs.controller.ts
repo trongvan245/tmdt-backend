@@ -12,12 +12,12 @@ import { CurrentUser } from 'src/common/decorator/user.decorator';
 
 @ApiTags('blogs')
 @Controller('blogs')
+@ApiBearerAuth()
 export class BlogsController {
   constructor(private readonly blogsService: BlogsService) {}
 
   @Post()
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Tạo bài blog mới (Seller)' })
   create(@CurrentUser() user: UserPayload, @Body() createBlogDto: CreateBlogDto) {
     return this.blogsService.create(user.id, createBlogDto);
@@ -26,6 +26,7 @@ export class BlogsController {
   @Get()
   @ApiOperation({ summary: 'Danh sách bài viết (Public - Có lọc theo tag, shop, tên)' })
   findAll(@Query() query: FilterBlogDto) {
+    console.log('Lấy danh sách blog với filter:', query);
     return this.blogsService.findAll(query);
   }
 
