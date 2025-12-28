@@ -92,27 +92,45 @@ export class OrdersService {
 
   // --- 2. LẤY DANH SÁCH ĐƠN HÀNG ---
   async findAll(userId: number, role: Role) {
+    // 1. ADMIN: Xem hết, kèm Product
     if (role === Role.ADMIN) {
-      return this.prisma.order.findMany({ include: { shop: true, orderItems: true } });
-    }
-
-    // Nếu là Seller: Lấy các đơn hàng thuộc Shop của mình
-    if (role === Role.SELLER) {
-      // Tìm shop của user này trước
-      const shop = await this.prisma.shop.findUnique({ where: { ownerId: userId } });
-      if (!shop) return []; // Chưa có shop thì chưa có đơn bán
-
-      return this.prisma.order.findMany({
-        where: { shopId: shop.id },
-        include: { user: { select: { fullName: true } }, orderItems: true },
+      return this.prisma.order.findMany({ 
+        include: { 
+          shop: true, 
+          orderItems: { 
+            include: { product: true } // <--- Thêm dòng này
+          } 
+        },
         orderBy: { createdAt: 'desc' }
       });
     }
 
-    // Nếu là Buyer: Lấy các đơn mình đã mua
+    // 2. SELLER: Xem đơn của shop mình, kèm Product
+    if (role === Role.SELLER) {
+      const shop = await this.prisma.shop.findUnique({ where: { ownerId: userId } });
+      if (!shop) return [];
+
+      return this.prisma.order.findMany({
+        where: { shopId: shop.id },
+        include: { 
+          user: { select: { fullName: true, avatarUrl: true } }, // Lấy thêm avatar khách cho đẹp
+          orderItems: { 
+            include: { product: true } // <--- Thêm dòng này
+          } 
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+    }
+
+    // 3. BUYER: Xem đơn đã mua, kèm Product
     return this.prisma.order.findMany({
       where: { userId },
-      include: { shop: { select: { name: true } }, orderItems: true },
+      include: { 
+        shop: { select: { name: true, avatarUrl: true } }, 
+        orderItems: { 
+          include: { product: true } // <--- Thêm dòng này
+        } 
+      },
       orderBy: { createdAt: 'desc' }
     });
   }
@@ -143,57 +161,89 @@ export class OrdersService {
 
   // --- 4. CẬP NHẬT TRẠNG THÁI (Logic cốt lõi) ---
   async updateStatus(id: number, userId: number, dto: UpdateOrderStatusDto) {
+    // 1. Tìm đơn hàng kèm theo danh sách sản phẩm (orderItems) để sau này tính soldCount
     const order = await this.prisma.order.findUnique({
       where: { id },
-      include: { shop: true }
+      include: { 
+        shop: true,
+        orderItems: true // <--- QUAN TRỌNG: Cần lấy cái này để biết số lượng từng món
+      }
     });
 
     if (!order) throw new NotFoundException('Đơn hàng không tồn tại');
 
+    // --- LOGIC CHẶN SỬA KHI ĐÃ HOÀN THÀNH ---
+    if (order.status === OrderStatus.COMPLETED) {
+      throw new BadRequestException('Đơn hàng đã hoàn thành và chốt sổ, không thể thay đổi trạng thái được nữa.');
+    }
+    
+    if (order.status === OrderStatus.CANCELLED) {
+       throw new BadRequestException('Đơn hàng đã hủy, không thể khôi phục.');
+    }
+    // ----------------------------------------
+
     const isBuyer = order.userId === userId;
-    const isSeller = order.shop.ownerId === userId; // Check chủ shop trực tiếp
+    const isSeller = order.shop.ownerId === userId;
 
     if (!isBuyer && !isSeller) {
       throw new ForbiddenException('Bạn không có quyền cập nhật đơn này');
     }
 
-    const currentStatus = order.status;
     const newStatus = dto.status;
 
-    // --- LOGIC CHO BUYER ---
+    // --- CHECK QUYỀN VÀ LOGIC CHUYỂN TRẠNG THÁI ---
     if (isBuyer) {
-      // Buyer chỉ được HỦY khi đơn còn PENDING
+      // Buyer: Chỉ được HỦY (khi Pending) hoặc NHẬN HÀNG (khi Shipping)
       if (newStatus === OrderStatus.CANCELLED) {
-        if (currentStatus !== OrderStatus.PENDING) {
+        if (order.status !== OrderStatus.PENDING) {
           throw new BadRequestException('Đơn hàng đã được xử lý, không thể hủy');
         }
-      }
-      // Buyer xác nhận ĐÃ NHẬN HÀNG khi đang SHIPPING
-      else if (newStatus === OrderStatus.COMPLETED) {
-        if (currentStatus !== OrderStatus.SHIPPING) {
+      } else if (newStatus === OrderStatus.COMPLETED) {
+        if (order.status !== OrderStatus.SHIPPING) {
           throw new BadRequestException('Chỉ có thể xác nhận khi đơn đang giao');
         }
-      } 
-      else {
+      } else {
         throw new ForbiddenException('Người mua không có quyền thực hiện trạng thái này');
       }
     }
 
-    // --- LOGIC CHO SELLER ---
     if (isSeller) {
-       // Seller không thể quay ngược trạng thái (VD: Completed -> Pending)
-       // Seller không thể sửa đơn đã Cancel hoặc Completed
-       if (currentStatus === OrderStatus.CANCELLED || currentStatus === OrderStatus.COMPLETED) {
-         throw new BadRequestException('Đơn hàng đã kết thúc, không thể thay đổi');
-       }
-       
-       // Quy trình chuẩn: PENDING -> PREPARING -> SHIPPING -> COMPLETED
-       // Seller cũng có thể Hủy đơn (CANCELLED) nếu hết hàng
+       // Seller: Không được chuyển về trạng thái lùi (VD: Đang Shipping quay về Pending)
+       // Logic đơn giản: Cho phép Seller chuyển tiếp hoặc Hủy
     }
 
-    return this.prisma.order.update({
-      where: { id },
-      data: { status: newStatus }
+    // --- THỰC HIỆN UPDATE (DÙNG TRANSACTION) ---
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Cập nhật trạng thái đơn hàng
+      const updatedOrder = await tx.order.update({
+        where: { id },
+        data: { status: newStatus }
+      });
+
+      // 2. Nếu trạng thái mới là COMPLETED -> Cộng soldCount cho các sản phẩm
+      if (newStatus === OrderStatus.COMPLETED) {
+        for (const item of order.orderItems) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { 
+              soldCount: { increment: item.quantity } // Cộng dồn số lượng đã bán
+            }
+          });
+        }
+      }
+
+      // (Tùy chọn) Nếu trạng thái mới là CANCELLED -> Hoàn lại stockQuantity (Tồn kho)
+      // nếu trước đó lúc tạo đơn bạn đã trừ tồn kho.
+      if (newStatus === OrderStatus.CANCELLED) {
+         for (const item of order.orderItems) {
+            await tx.product.update({
+                where: { id: item.productId },
+                data: { stockQuantity: { increment: item.quantity } }
+            });
+         }
+      }
+
+      return updatedOrder;
     });
   }
 }
