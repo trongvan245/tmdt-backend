@@ -9,20 +9,20 @@ import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { FilterProductDto } from './dto/filter-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger'; // Import
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth, ApiConsumes, ApiBody } from '@nestjs/swagger'; 
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { Public } from 'src/auth/public.decorator';
 
-@ApiTags('products') // 1. Gom nhóm API trong UI
+@ApiTags('products') 
 @ApiBearerAuth()
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
-  @ApiOperation({ summary: 'Tạo sản phẩm mới' }) // 2. Mô tả API làm gì
+  @ApiOperation({ summary: 'Tạo sản phẩm mới' }) 
   @ApiResponse({ status: 201, description: 'Tạo thành công.' })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ.' })
   create(@Body() createProductDto: CreateProductDto) {
@@ -30,7 +30,7 @@ export class ProductsController {
   }
 
   @Get()
-  @Public()
+  @Public() // Đã có sẵn
   @ApiOperation({ summary: 'Lấy danh sách sản phẩm (có lọc & phân trang) (Public)' })
   @ApiResponse({ status: 200, description: 'Trả về danh sách sản phẩm.' })
   findAll(@Query() query: FilterProductDto) {
@@ -38,7 +38,8 @@ export class ProductsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Lấy chi tiết một sản phẩm' })
+  @Public() // --- THÊM MỚI ---
+  @ApiOperation({ summary: 'Lấy chi tiết một sản phẩm (Public)' }) // --- UPDATE TEXT ---
   @ApiResponse({ status: 200, description: 'Tìm thấy sản phẩm.' })
   @ApiResponse({ status: 404, description: 'Không tìm thấy sản phẩm.' })
   findOne(@Param('id', ParseIntPipe) id: number) {
@@ -62,13 +63,13 @@ export class ProductsController {
 
   @Post(':id/upload-images')
   @ApiOperation({ summary: 'Upload nhiều ảnh cho sản phẩm' })
-  @ApiConsumes('multipart/form-data') // Bắt buộc để Swagger hiện nút upload file
+  @ApiConsumes('multipart/form-data') 
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
         files: {
-          type: 'array', // Upload nhiều file
+          type: 'array', 
           items: {
             type: 'string',
             format: 'binary',
@@ -78,18 +79,16 @@ export class ProductsController {
     },
   })
   @UseInterceptors(
-    FilesInterceptor('files', 10, { // 'files' là tên field trong form-data, max 10 ảnh
+    FilesInterceptor('files', 10, { 
       storage: diskStorage({
-        destination: './uploads/products', // Thư mục lưu (Tự động tạo nếu chưa có)
+        destination: './uploads/products', 
         filename: (req, file, callback) => {
-          // Đổi tên file để tránh trùng lặp: timestamp + đuôi file gốc
           const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
           const ext = extname(file.originalname);
           callback(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
         },
       }),
       fileFilter: (req, file, callback) => {
-        // Chỉ cho phép ảnh
         if (!file.mimetype.match(/\/(jpg|jpeg|png|gif)$/)) {
           return callback(new BadRequestException('Chỉ chấp nhận file ảnh!'), false);
         }
@@ -99,7 +98,7 @@ export class ProductsController {
   )
   uploadImages(
     @Param('id', ParseIntPipe) id: number,
-    @UploadedFiles() files: Array<Express.Multer.File>, // Lấy file từ Interceptor
+    @UploadedFiles() files: Array<Express.Multer.File>, 
   ) {
     if (!files || files.length === 0) {
       throw new BadRequestException('Vui lòng chọn ít nhất một file ảnh');
@@ -108,14 +107,14 @@ export class ProductsController {
   }
 
   @Get('shop/:shopId')
-  @ApiOperation({ summary: 'Lấy danh sách sản phẩm của một Shop (Có phân trang)' })
+  @Public() // --- THÊM MỚI ---
+  @ApiOperation({ summary: 'Lấy danh sách sản phẩm của một Shop (Có phân trang) (Public)' }) // --- UPDATE TEXT ---
   @ApiResponse({ status: 200, description: 'Trả về danh sách sản phẩm.' })
   findByShop(
     @Param('shopId', ParseIntPipe) shopId: number,
-    @Query('page') page?: number,  // Query param tùy chọn
-    @Query('limit') limit?: number, // Query param tùy chọn
+    @Query('page') page?: number,  
+    @Query('limit') limit?: number, 
   ) {
-    // Mặc định page = 1, limit = 10 nếu client không gửi
     const pageNumber = page ? Number(page) : 1;
     const limitNumber = limit ? Number(limit) : 10;
 

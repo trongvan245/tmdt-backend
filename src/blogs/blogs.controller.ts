@@ -25,22 +25,21 @@ export class BlogsController {
   }
 
   @Get()
-  @Public()
+  @Public() // Đã có sẵn
   @ApiOperation({ summary: 'Danh sách bài viết (Public - Có lọc theo tag, shop, tên)' })
   findAll(@Query() query: FilterBlogDto) {
-    console.log('Lấy danh sách blog với filter:', query);
     return this.blogsService.findAll(query);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Xem chi tiết bài viết' })
+  @Public() // --- THÊM MỚI ---
+  @ApiOperation({ summary: 'Xem chi tiết bài viết (Public)' }) // --- UPDATE TEXT ---
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.blogsService.findOne(id);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Sửa bài viết (Seller)' })
   update(
     @Param('id', ParseIntPipe) id: number, 
@@ -52,7 +51,6 @@ export class BlogsController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   @ApiOperation({ summary: 'Xóa bài viết (Seller)' })
   remove(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: UserPayload) {
     return this.blogsService.remove(id, user.id);

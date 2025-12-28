@@ -102,12 +102,6 @@ export class ProductsService {
 
   // 3. Lấy chi tiết 1 sản phẩm
   async findOne(id: number) {
-    // 1. Tăng view lên 1 (Atomic update - an toàn khi nhiều người click cùng lúc)
-    await this.prisma.product.update({
-      where: { id },
-      data: { viewCount: { increment: 1 } },
-    });
-
     // 2. Lấy dữ liệu trả về
     const product = await this.prisma.product.findUnique({
       where: { id },
@@ -115,6 +109,12 @@ export class ProductsService {
     });
 
     if (!product) throw new NotFoundException('Sản phẩm không tồn tại');
+    
+    await this.prisma.product.update({
+      where: { id },
+      data: { viewCount: { increment: 1 } },
+    });
+
     return product;
   }
 
