@@ -12,6 +12,7 @@ import { OrdersModule } from './orders/orders.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { BlogsModule } from './blogs/blogs.module';
+import { ReviewModule } from './review/review.module';
 // ... các import khác
 
 @Module({
@@ -27,6 +28,7 @@ import { BlogsModule } from './blogs/blogs.module';
       serveRoot: '/uploads', // Đường dẫn ảo trên URL
     }),
     BlogsModule,
+    ReviewModule,
     // ...
   ],
   controllers: [],

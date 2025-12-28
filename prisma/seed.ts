@@ -26,6 +26,21 @@ function getSeededRandomInt(min: number, max: number) {
   return Math.floor(random() * (max - min + 1)) + min;
 }
 
+// Hàm lấy phần tử ngẫu nhiên từ mảng
+function getSeededRandomItem<T>(arr: T[]): T {
+  return arr[getSeededRandomInt(0, arr.length - 1)];
+}
+
+// Hàm shuffle mảng (để chọn 3 buyer ngẫu nhiên không trùng)
+function seededShuffle<T>(array: T[]) {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+}
+
 // Hàm tạo slug
 function slugify(text: string) {
   return text.toString().toLowerCase()
@@ -81,21 +96,23 @@ async function main() {
     sellers.push(user);
   }
   
-  // TẠO BUYERS
+  // TẠO 5 BUYERS (Để đủ số lượng tạo 3 review khác nhau)
   const buyers = [];
-  const buyersData = [
-    { email: 'khachhang1@gmail.com', name: 'Nguyễn Văn Mua' },
-    { email: 'khachhang2@gmail.com', name: 'Trần Thị Sắm' },
-  ];
+  const buyersNames = ['Nguyễn Văn Mua', 'Trần Thị Sắm', 'Lê Văn Khách', 'Phạm Thị Hàng', 'Hoàng Văn Tiêu'];
   
-  for (const b of buyersData) {
+  for (let i = 0; i < buyersNames.length; i++) {
     const user = await prisma.user.create({ 
-      data: { email: b.email, password: passwordHash, fullName: b.name, role: Role.BUYER } 
+      data: { 
+        email: `khachhang${i + 1}@gmail.com`, 
+        password: passwordHash, 
+        fullName: buyersNames[i], 
+        role: Role.BUYER 
+      } 
     });
     buyers.push(user);
   }
 
-  console.log(`👤 Đã tạo xong Users.`);
+  console.log(`👤 Đã tạo xong Users (${buyers.length} Buyers).`);
 
   // TẠO SHOPS
   const shopsData = [
@@ -164,7 +181,7 @@ async function main() {
   ];
 
   let prodCount = 0;
-  const createdProducts = []; // Lưu lại để dùng cho tạo Order
+  const createdProducts = [];
   
   for (const p of productsData) {
     const randomSold = getSeededRandomInt(10, 500);
@@ -191,25 +208,54 @@ async function main() {
 
   console.log(`📦 Đã tạo xong ${prodCount} Products.`);
 
+  // --- TẠO REVIEWS (3 Reviews cho mỗi Product) ---
+  console.log('⭐ Đang tạo Reviews...');
+  
+  const comments5star = ['Tuyệt vời!', 'Sản phẩm rất đẹp', 'Giao hàng nhanh, đóng gói kỹ', 'Rất hài lòng, sẽ ủng hộ tiếp', 'Chất lượng tốt hơn mong đợi'];
+  const comments4star = ['Khá tốt', 'Tạm ổn trong tầm giá', 'Sản phẩm đẹp nhưng giao hơi lâu', 'Đóng gói cẩn thận', 'Hàng giống hình'];
+  const comments3star = ['Bình thường', 'Chất lượng trung bình', 'Hơi thất vọng xíu', 'Cần cải thiện khâu đóng gói'];
+
+  for (const product of createdProducts) {
+    // Trộn danh sách buyer và lấy 3 người đầu tiên (để đảm bảo 3 người khác nhau)
+    const shuffledBuyers = seededShuffle(buyers); 
+    const reviewers = shuffledBuyers.slice(0, 3); // Lấy 3 người
+
+    for (const reviewer of reviewers) {
+      // Random rating (Bias về 4-5 sao cho đẹp)
+      const rating = getSeededRandomInt(3, 5); 
+      let comment = '';
+      
+      if (rating === 5) comment = getSeededRandomItem(comments5star);
+      else if (rating === 4) comment = getSeededRandomItem(comments4star);
+      else comment = getSeededRandomItem(comments3star);
+
+      await prisma.review.create({
+        data: {
+          userId: reviewer.id,
+          productId: product.id,
+          rating: rating,
+          comment: comment
+        }
+      });
+    }
+  }
+  console.log(`✅ Đã tạo xong Reviews (3 đánh giá/sản phẩm).`);
+
   // --- TẠO ORDERS (2 Đơn cho mỗi Buyer) ---
   console.log('🛒 Đang tạo Order (Đơn hàng)...');
-  
   const orderStatuses = ['PENDING', 'SHIPPING', 'COMPLETED', 'CANCELLED'];
 
   for (const buyer of buyers) {
-    // Mỗi người mua 2 đơn
     for (let i = 0; i < 2; i++) {
-      // Mỗi đơn mua ngẫu nhiên 1-3 loại sản phẩm
       const itemsCount = getSeededRandomInt(1, 3);
       const orderItemsData = [];
       let totalAmount = 0;
 
       for (let j = 0; j < itemsCount; j++) {
-        // Chọn sản phẩm ngẫu nhiên
         const randomProdIndex = getSeededRandomInt(0, createdProducts.length - 1);
         const product = createdProducts[randomProdIndex];
         const quantity = getSeededRandomInt(1, 3);
-        const price = Number(product.price); // Convert Decimal to Number
+        const price = Number(product.price); 
 
         totalAmount += price * quantity;
         
@@ -220,9 +266,8 @@ async function main() {
         });
       }
 
-      // Random status, nhưng ưu tiên COMPLETED để hiện lịch sử mua hàng
       const statusIndex = getSeededRandomInt(0, 3); 
-      const randomStatus = i === 0 ? 'COMPLETED' : orderStatuses[statusIndex]; // Đơn đầu tiên luôn Completed
+      const randomStatus = i === 0 ? 'COMPLETED' : orderStatuses[statusIndex]; 
 
       await prisma.order.create({
         data: {

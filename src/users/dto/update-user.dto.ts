@@ -1,12 +1,12 @@
-// src/users/dto/update-user.dto.ts
-import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateUserDto {
-  @ApiProperty({ example: 'Nguyen Van B', required: false })
-  @IsString()
+  @ApiPropertyOptional({ example: 'Nguyễn Văn A', description: 'Tên hiển thị' })
   @IsOptional()
+  @IsString()
+  @MaxLength(50)
   fullName?: string;
 
-  // Bạn có thể thêm avatar, phone, address ở đây sau này
+  // Avatar sẽ được xử lý riêng qua FileInterceptor, không cần khai báo ở đây để validate
 }

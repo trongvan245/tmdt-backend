@@ -7,7 +7,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as fs from 'fs'; // 1. Import module fs
 
 async function bootstrap() {
-  const dirs = ['./uploads/products', './uploads/shops'];
+  const dirs = ['./uploads/products', './uploads/shops', './uploads/users'];
   
   dirs.forEach(dir => {
     if (!fs.existsSync(dir)) {
