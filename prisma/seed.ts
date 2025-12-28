@@ -17,26 +17,23 @@ function mulberry32(a: number) {
   }
 }
 
-// Khởi tạo hàm random với seed cố định (Thay đổi số này sẽ đổi toàn bộ dữ liệu)
+// Khởi tạo hàm random với seed cố định
 const seed = 54321; 
 const random = mulberry32(seed);
 
-// Hàm lấy số nguyên trong khoảng min-max (Sử dụng hàm random đã seed)
+// Hàm lấy số nguyên trong khoảng min-max
 function getSeededRandomInt(min: number, max: number) {
   return Math.floor(random() * (max - min + 1)) + min;
 }
 
-// Hàm tạo slug (giữ nguyên)
+// Hàm tạo slug
 function slugify(text: string) {
-  // Vì ngày giờ chạy mỗi lúc một khác, ta fix cứng timestamp trong slug 
-  // để đảm bảo tính nhất quán tuyệt đối, hoặc bỏ timestamp đi.
-  // Ở đây tôi giữ logic cũ nhưng thay Date.now() bằng 1 số cố định cho đẹp.
   return text.toString().toLowerCase()
     .replace(/\s+/g, '-')           
     .replace(/[^\w\-]+/g, '')       
     .replace(/\-\-+/g, '-')         
     .replace(/^-+/, '')             
-    .replace(/-+$/, '') + '-1700000000'; // Hardcode timestamp giả
+    .replace(/-+$/, '') + '-1700000000'; // Timestamp giả cố định
 }
 
 async function main() {
@@ -53,19 +50,19 @@ async function main() {
 
   console.log('🗑️  Đã xóa sạch dữ liệu cũ.');
 
-  // TẠO PASSWORD HASH
+  // TẠO PASSWORD HASH (Mật khẩu chung: 123456)
   const salt = await bcrypt.genSalt(10);
   const passwordHash = await bcrypt.hash('123456', salt);
 
-  // TẠO USER 
+  // TẠO ADMIN
   await prisma.user.create({
     data: { email: 'admin@craftviet.com', password: passwordHash, fullName: 'Quản Trị Viên', role: Role.ADMIN },
   });
 
+  // TẠO SELLERS
   const sellers = [];
   const sellersData = [
-    { email: 'nghe_nhan_gom@gmail.com', name: 'Nghệ Nhân Lê Văn Gốm' },
-    { email: 'seller_gom@gmail.com', name: 'Nghệ Nhân Lê Văn Gốm' },     
+    { email: 'nghe_nhan_gom@gmail.com', name: 'Nghệ Nhân Lê Văn Gốm' }, 
     { email: 'seller_lua@gmail.com', name: 'Cô Ba Lụa' },               
     { email: 'seller_tre@gmail.com', name: 'Chú Tư Tre' },              
     { email: 'seller_go@gmail.com', name: 'Bác Năm Mộc' },              
@@ -84,9 +81,19 @@ async function main() {
     sellers.push(user);
   }
   
-  // Tạo Buyer
-  await prisma.user.create({ data: { email: 'khachhang1@gmail.com', password: passwordHash, fullName: 'Nguyễn Văn Mua', role: Role.BUYER } });
-  await prisma.user.create({ data: { email: 'khachhang2@gmail.com', password: passwordHash, fullName: 'Trần Thị Sắm', role: Role.BUYER } });
+  // TẠO BUYERS
+  const buyers = [];
+  const buyersData = [
+    { email: 'khachhang1@gmail.com', name: 'Nguyễn Văn Mua' },
+    { email: 'khachhang2@gmail.com', name: 'Trần Thị Sắm' },
+  ];
+  
+  for (const b of buyersData) {
+    const user = await prisma.user.create({ 
+      data: { email: b.email, password: passwordHash, fullName: b.name, role: Role.BUYER } 
+    });
+    buyers.push(user);
+  }
 
   console.log(`👤 Đã tạo xong Users.`);
 
@@ -122,49 +129,48 @@ async function main() {
 
   console.log(`🏪 Đã tạo xong Shops.`);
 
-  // TẠO PRODUCTS (Random Deterministic)
-  
+  // TẠO PRODUCTS
   const productsData = [
-    // Gốm
+    // Gốm (Shop 0)
     { shopIdx: 0, name: 'Bình Hoa Men Lam Cổ', cat: 'Gốm sứ', price: 550000, stock: 20 },
     { shopIdx: 0, name: 'Bộ Ấm Chén Tử Sa', cat: 'Gốm sứ', price: 1200000, stock: 10 },
     { shopIdx: 0, name: 'Lọ Lộc Bình Phong Thủy', cat: 'Gốm sứ', price: 2500000, stock: 5 },
-    // Lụa
+    // Lụa (Shop 1)
     { shopIdx: 1, name: 'Khăn Choàng Lụa Sen', cat: 'Thời trang', price: 850000, stock: 50 },
     { shopIdx: 1, name: 'Áo Dài Lụa Tơ Tằm', cat: 'Thời trang', price: 3500000, stock: 15 },
-    // Tre
+    // Tre (Shop 2)
     { shopIdx: 2, name: 'Đèn Lồng Tre Thả Trần', cat: 'Trang trí', price: 350000, stock: 100 },
     { shopIdx: 2, name: 'Giỏ Mây Picnic Vintage', cat: 'Phụ kiện', price: 250000, stock: 40 },
-    // Gỗ
+    // Gỗ (Shop 3)
     { shopIdx: 3, name: 'Tượng Di Lặc Gỗ Hương', cat: 'Đồ gỗ', price: 4500000, stock: 3 },
     { shopIdx: 3, name: 'Khay Trà Gỗ Trắc', cat: 'Đồ gỗ', price: 1800000, stock: 8 },
     { shopIdx: 3, name: 'Hộp Đựng Trang Sức Gỗ', cat: 'Đồ gỗ', price: 600000, stock: 20 },
-    // Sơn Mài
+    // Sơn Mài (Shop 4)
     { shopIdx: 4, name: 'Tranh Sơn Mài Tứ Quý', cat: 'Tranh nghệ thuật', price: 8000000, stock: 2 },
     { shopIdx: 4, name: 'Bình Hoa Sơn Mài Cẩn Trứng', cat: 'Trang trí', price: 1500000, stock: 10 },
-    // Đồng
+    // Đồng (Shop 5)
     { shopIdx: 5, name: 'Lư Xông Trầm Bằng Đồng', cat: 'Đồ thờ', price: 950000, stock: 15 },
     { shopIdx: 5, name: 'Hạc Đồng Cưỡi Quy', cat: 'Đồ thờ', price: 3200000, stock: 5 },
-    // Đá
+    // Đá (Shop 6)
     { shopIdx: 6, name: 'Tượng Phật Quan Âm Đá Non Nước', cat: 'Tượng đá', price: 2100000, stock: 5 },
     { shopIdx: 6, name: 'Cối Đá Mini Trang Trí', cat: 'Trang trí', price: 300000, stock: 30 },
-    // Thêu
+    // Thêu (Shop 7)
     { shopIdx: 7, name: 'Tranh Thêu Tay Hoa Mẫu Đơn', cat: 'Tranh nghệ thuật', price: 4200000, stock: 4 },
     { shopIdx: 7, name: 'Khăn Tay Thêu Tên', cat: 'Phụ kiện', price: 150000, stock: 100 },
-    // Đông Hồ
+    // Đông Hồ (Shop 8)
     { shopIdx: 8, name: 'Bộ Tranh Đám Cưới Chuột', cat: 'Tranh dân gian', price: 200000, stock: 50 },
-    // Cói
+    // Cói (Shop 9)
     { shopIdx: 9, name: 'Túi Xách Cói Thời Trang', cat: 'Phụ kiện', price: 280000, stock: 60 },
   ];
 
   let prodCount = 0;
+  const createdProducts = []; // Lưu lại để dùng cho tạo Order
+  
   for (const p of productsData) {
-    // Sử dụng getSeededRandomInt thay vì Math.random
-    // Dù bạn chạy script này bao nhiêu lần, "Bình Hoa Men Lam Cổ" sẽ luôn có soldCount giống hệt nhau
     const randomSold = getSeededRandomInt(10, 500);
     const randomView = getSeededRandomInt(randomSold + 50, 3000); 
 
-    await prisma.product.create({
+    const product = await prisma.product.create({
       data: {
         shopId: createdShops[p.shopIdx].id,
         name: p.name,
@@ -175,14 +181,64 @@ async function main() {
         material: 'Tự nhiên',
         origin: createdShops[p.shopIdx].villageName,
         images: [`https://placehold.co/600x600?text=${encodeURIComponent(p.name)}`],
-        
         soldCount: randomSold,
+        viewCount: randomView,
       },
     });
+    createdProducts.push(product);
     prodCount++;
   }
 
   console.log(`📦 Đã tạo xong ${prodCount} Products.`);
+
+  // --- TẠO ORDERS (2 Đơn cho mỗi Buyer) ---
+  console.log('🛒 Đang tạo Order (Đơn hàng)...');
+  
+  const orderStatuses = ['PENDING', 'SHIPPING', 'COMPLETED', 'CANCELLED'];
+
+  for (const buyer of buyers) {
+    // Mỗi người mua 2 đơn
+    for (let i = 0; i < 2; i++) {
+      // Mỗi đơn mua ngẫu nhiên 1-3 loại sản phẩm
+      const itemsCount = getSeededRandomInt(1, 3);
+      const orderItemsData = [];
+      let totalAmount = 0;
+
+      for (let j = 0; j < itemsCount; j++) {
+        // Chọn sản phẩm ngẫu nhiên
+        const randomProdIndex = getSeededRandomInt(0, createdProducts.length - 1);
+        const product = createdProducts[randomProdIndex];
+        const quantity = getSeededRandomInt(1, 3);
+        const price = Number(product.price); // Convert Decimal to Number
+
+        totalAmount += price * quantity;
+        
+        orderItemsData.push({
+          productId: product.id,
+          quantity: quantity,
+          price: price
+        });
+      }
+
+      // Random status, nhưng ưu tiên COMPLETED để hiện lịch sử mua hàng
+      const statusIndex = getSeededRandomInt(0, 3); 
+      const randomStatus = i === 0 ? 'COMPLETED' : orderStatuses[statusIndex]; // Đơn đầu tiên luôn Completed
+
+      await prisma.order.create({
+        data: {
+          userId: buyer.id,
+          totalAmount: totalAmount,
+          address: '123 Đường Láng, Hà Nội',
+          phone: '0987654321',
+          status: randomStatus, 
+          orderItems: {
+            create: orderItemsData
+          }
+        }
+      });
+    }
+  }
+  console.log(`✅ Đã tạo xong Orders.`);
 
   // TẠO BLOGS
   const blogsGom = [

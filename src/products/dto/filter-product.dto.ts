@@ -1,22 +1,18 @@
-import { IsOptional, IsString, IsNumber, Min } from 'class-validator';
+import { IsOptional, IsString, IsNumber, Min, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
+// 1. Định nghĩa các kiểu sắp xếp
+export enum ProductSort {
+  NEWEST = 'newest',         // Mới nhất
+  OLDEST = 'oldest',         // Cũ nhất
+  PRICE_ASC = 'price_asc',   // Giá tăng dần
+  PRICE_DESC = 'price_desc', // Giá giảm dần
+  SOLD_DESC = 'sold_desc',   // Bán chạy nhất (Cao -> Thấp)
+  VIEW_DESC = 'view_desc',   // Xem nhiều nhất (Cao -> Thấp)
+}
+
 export class FilterProductDto {
-  @ApiPropertyOptional({ example: 1, description: 'Trang hiện tại' })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  page?: number = 1;
-
-  @ApiPropertyOptional({ example: 10, description: 'Số lượng item mỗi trang' })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber()
-  @Min(1)
-  limit?: number = 10;
-
   @ApiPropertyOptional({ description: 'Tìm kiếm theo tên sản phẩm' })
   @IsOptional()
   @IsString()
@@ -24,27 +20,50 @@ export class FilterProductDto {
 
   @ApiPropertyOptional({ description: 'Lọc sản phẩm theo ID cửa hàng' })
   @IsOptional()
-  @Type(() => Number) // Chuyển "1" (string) thành 1 (number)
+  @Type(() => Number)
   @IsNumber()
   shopId?: number;
 
-  @ApiPropertyOptional({ description: 'Lọc theo danh mục' })
+  // 2. Thêm trường SortBy vào DTO
+  @ApiPropertyOptional({ 
+    enum: ProductSort, 
+    description: 'Sắp xếp: newest, oldest, price_asc, price_desc, sold_desc, view_desc' 
+  })
   @IsOptional()
-  @IsString()
-  category?: string;
+  @IsEnum(ProductSort)
+  sortBy?: ProductSort;
 
+  // ... (Các trường cũ minPrice, maxPrice, category, page, limit giữ nguyên)
   @ApiPropertyOptional({ description: 'Giá thấp nhất' })
   @IsOptional()
   @Type(() => Number)
+  @IsNumber()
+  @Min(0)
   minPrice?: number;
 
   @ApiPropertyOptional({ description: 'Giá cao nhất' })
   @IsOptional()
   @Type(() => Number)
+  @IsNumber()
+  @Min(0)
   maxPrice?: number;
-  
-  @ApiPropertyOptional({ example: 'newest', description: 'Sắp xếp: price_asc, price_desc, newest' })
+
+  @ApiPropertyOptional({ description: 'Danh mục sản phẩm' })
   @IsOptional()
   @IsString()
-  sortBy?: string;
+  category?: string;
+
+  @ApiPropertyOptional({ default: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  page?: number = 1;
+
+  @ApiPropertyOptional({ default: 10 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  limit?: number = 10;
 }

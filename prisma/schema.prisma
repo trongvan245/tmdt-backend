@@ -88,6 +88,7 @@ model Product {
   // POSTGRESQL: Dùng Decimal để tính tiền chính xác
   price         Decimal  @db.Decimal(15, 2) 
   stockQuantity Int      @default(0)
+  viewCount     Int      @default(0)
   soldCount     Int      @default(0)
   createdAt     DateTime @default(now())
 

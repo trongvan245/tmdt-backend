@@ -13,6 +13,7 @@ import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth, ApiConsume
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
+import { Public } from 'src/auth/public.decorator';
 
 @ApiTags('products') // 1. Gom nhóm API trong UI
 @ApiBearerAuth()
@@ -29,7 +30,8 @@ export class ProductsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Lấy danh sách sản phẩm (có lọc & phân trang)' })
+  @Public()
+  @ApiOperation({ summary: 'Lấy danh sách sản phẩm (có lọc & phân trang) (Public)' })
   @ApiResponse({ status: 200, description: 'Trả về danh sách sản phẩm.' })
   findAll(@Query() query: FilterProductDto) {
     return this.productsService.findAll(query);

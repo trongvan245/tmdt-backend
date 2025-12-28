@@ -16,6 +16,7 @@ import { FilterShopDto } from './dto/filter-shop.dto';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import { Public } from 'src/auth/public.decorator';
 
 @ApiTags('shops')
 @ApiBearerAuth()
@@ -57,13 +58,15 @@ export class ShopsController {
 
   // API này Public (không cần login) để khách xem hàng
   @Get(':id')
+  @Public()
   @ApiOperation({ summary: 'Xem thông tin shop bất kỳ (Public)' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.shopsService.findOne(id);
   }
 
   @Get()
-  @ApiOperation({ summary: 'Lấy danh sách cửa hàng (Có tìm kiếm & sắp xếp)' })
+  @Public()
+  @ApiOperation({ summary: 'Lấy danh sách cửa hàng (Có tìm kiếm & sắp xếp) (Public)' })
   @ApiResponse({ status: 200, description: 'Trả về danh sách cửa hàng.' })
   findAll(@Query() query: FilterShopDto) {
     return this.shopsService.findAll(query);
